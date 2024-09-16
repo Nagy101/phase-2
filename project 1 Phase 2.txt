@@ -1,0 +1,311 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <vector>
+
+using namespace std;
+
+class Person {
+protected:
+    int id;
+    string name;
+    string password;
+public:
+    Person(int ID, string Name, string Password) {
+        set_ID(ID);
+        set_name(Name);
+        set_password(Password);
+    }
+
+    void set_ID(int ID) {
+        id = ID;
+    }
+
+    void set_name(string NAME) {
+        if (NAME.size() < 5 || NAME.size() > 20) {
+            cout << "Error: Name must be between 5 and 20 characters long.\n";
+            return;
+        }
+        for (char c : NAME) {
+            if (!isalpha(c)) {
+                cout << "Error: Name must contain only alphabetic characters.\n";
+                return;
+            }
+        }
+        name = NAME;
+    }
+
+    void set_password(string PASSWORD) {
+        if (PASSWORD.size() >= 8 && PASSWORD.size() <= 20) {
+            password = PASSWORD;
+        }
+        else {
+            cout << "Error: Password size must be between 8 and 20 characters.\n";
+        }
+    }
+
+    int get_ID() {
+        return id;
+    }
+
+    string get_name() {
+        return name;
+    }
+
+    string get_password() {
+        return password;
+    }
+
+    virtual void Display() = 0;
+};
+
+class Clint : public Person {
+private:
+    double balance;
+public:
+    Clint(int ID, string Name, string Password, double Balance) : Person(ID, Name, Password) {
+        set_Balance(Balance);
+    }
+
+    void set_Balance(double bala) {
+        if (bala >= 1500)
+            balance = bala;
+        else
+            cout << "Error: Minimum balance should be 1500 or more.\n";
+    }
+
+    double get_Balance() {
+        return balance;
+    }
+
+    void deposit(double amount) {
+        if (amount <= 0) {
+            cout << "Invalid deposit amount.\n";
+            return;
+        }
+        balance += amount;
+        cout << "\nDeposit successful! Amount: " << amount << " | New balance: " << balance << "\n";
+    }
+
+    void withdraw(double amount) {
+        if (amount <= 0) {
+            cout << "Invalid withdraw amount.\n";
+            return;
+        }
+        if (balance >= amount) {
+            balance -= amount;
+            cout << "\nWithdrawal successful! Amount: " << amount << " | New balance: " << balance << "\n";
+        }
+        else {
+            cout << "Insufficient balance.\n";
+        }
+    }
+
+    void transferTo(double amount, Clint& recipient) {
+        cout << "\nInitiating transfer...\n";
+        cout << "Current balance: " << balance << "\nAttempting to transfer: " << amount << "\n";
+
+        if (balance >= amount) {
+            balance -= amount;
+            recipient.deposit(amount);
+            cout << "Transfer successful!\nTransferred amount: " << amount << " | New balance: " << balance << "\n";
+        }
+        else {
+            cout << "Transfer failed. Insufficient balance.\n";
+        }
+    }
+
+    void check_Balance() {
+        cout << "Your current Balance is " << balance << " EGP" << endl;
+    }
+
+    void Display() {
+        cout << "Your ID is " << get_ID() << endl;
+        cout << "Your Name is " << get_name() << endl;
+        cout << "Your Password is " << get_password() << endl;
+        cout << "Your Balance is " << get_Balance() << endl;
+    }
+};
+
+class Employee : public Person {
+private:
+    double salary;
+public:
+    Employee(int ID, string Name, string Password, double SALARY) : Person(ID, Name, Password) {
+        set_salary(SALARY);
+    }
+
+    void set_salary(double SALARY) {
+        if (SALARY >= 5000)
+            salary = SALARY;
+        else
+            cout << "Error: Minimum salary should be 5000 or more.\n";
+    }
+
+    double get_salary() {
+        return salary;
+    }
+
+    void Display() {
+        cout << "Your ID is " << get_ID() << endl;
+        cout << "Your Name is " << get_name() << endl;
+        cout << "Your Password is " << get_password() << endl;
+        cout << "Your Salary is " << get_salary() << endl;
+    }
+};
+
+static void saveLast(string fileName, int id) {
+    ofstream file(fileName);
+    if (file.is_open()) {
+        file << id;
+        file.close();
+    }
+}
+
+static int getLast(string fileName) {
+    int id = 0;
+    ifstream file(fileName);
+    if (file.is_open()) {
+        file >> id;
+        file.close();
+    }
+    return id;
+}
+
+static void saveClient(Clint c) {
+    ofstream file("clients.txt", ios::app);
+    if (file.is_open()) {
+        file << c.get_ID() << " " << c.get_name() << " " << c.get_password() << " " << c.get_Balance() << endl;
+        file.close();
+    }
+}
+
+static void saveEmployee(string fileName, string lastIdFile, Employee e) {
+    int lastId = getLast(lastIdFile);
+    lastId++;
+    e.set_ID(lastId);
+    saveLast(lastIdFile, lastId);
+
+    ofstream file(fileName, ios::app);
+    if (file.is_open()) {
+        file << e.get_ID() << " " << e.get_name() << " " << e.get_password() << " " << e.get_salary() << endl;
+        file.close();
+    }
+}
+
+static void getClients() {
+    ifstream file("clients.txt");
+    if (file.is_open()) {
+        int id;
+        string name, password;
+        double balance;
+
+        while (file >> id >> name >> password >> balance) {
+            cout << "ID: " << id << " | Name: " << name << " | Balance: " << balance << endl;
+        }
+        file.close();
+    }
+}
+
+static void getEmployees() {
+    ifstream file("employees.txt");
+    if (file.is_open()) {
+        int id;
+        string name, password;
+        double salary;
+
+        while (file >> id >> name >> password >> salary) {
+            cout << "ID: " << id << " | Name: " << name << " | Salary: " << salary << endl;
+        }
+        file.close();
+    }
+}
+
+static void clearFile(string fileName, string lastIdFile) {
+    ofstream file(fileName);
+    file.close();
+    saveLast(lastIdFile, 0);
+}
+
+class DataSourceInterface {
+public:
+    virtual void addClient(const Clint& client) = 0;
+    virtual void addEmployee(const Employee& employee) = 0;
+    virtual std::vector<Clint> getAllClients() = 0;
+    virtual std::vector<Employee> getAllEmployees() = 0;
+    virtual void removeAllClients() = 0;
+    virtual void removeAllEmployees() = 0;
+};
+
+class FileManager : public DataSourceInterface {
+public:
+    void addClient(const Clint& client) override {
+        saveClient(client);
+    }
+
+    void addEmployee(const Employee& employee) override {
+        saveEmployee("employees.txt", "employee_id.txt", employee);
+    }
+
+    std::vector<Clint> getAllClients() override {
+        vector<Clint> clients;
+        ifstream file("clients.txt");
+        if (file.is_open()) {
+            int id;
+            string name, password;
+            double balance;
+            while (file >> id >> name >> password >> balance) {
+                clients.emplace_back(id, name, password, balance);
+            }
+            file.close();
+        }
+        return clients;
+    }
+
+    std::vector<Employee> getAllEmployees() override {
+        vector<Employee> employees;
+        ifstream file("employees.txt");
+        if (file.is_open()) {
+            int id;
+            string name, password;
+            double salary;
+            while (file >> id >> name >> password >> salary) {
+                employees.emplace_back(id, name, password, salary);
+            }
+            file.close();
+        }
+        return employees;
+    }
+
+    void removeAllClients() override {
+        clearFile("clients.txt", "client_id.txt");
+    }
+
+    void removeAllEmployees() override {
+        clearFile("employees.txt", "employee_id.txt");
+    }
+};
+
+int main() {
+    FileManager fileManager;
+
+    Clint c1(123, "Sherif", "5060708016", 150000);
+    Clint c2(321, "Hassan", "123456153", 50000);
+
+    fileManager.addClient(c1);
+    fileManager.addClient(c2);
+
+    Employee e1(855, "Abdelrahman", "9876548610", 7000);
+    fileManager.addEmployee(e1);
+
+    cout << "\n--- Clients in the file ---\n";
+    getClients();
+
+    cout << "\n--- Employees in the file ---\n";
+    getEmployees();
+
+    fileManager.removeAllClients();
+    fileManager.removeAllEmployees();
+
+    return 0;
+}
